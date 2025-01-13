@@ -1,0 +1,153 @@
+name: Rust Build and Release
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  EXECUTABLE_NAME: "myascii"
+
+jobs:
+  extract-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract_version.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version from Cargo.toml
+      id: extract_version
+      run: |
+        version=$(grep '^version =' Cargo.toml | sed 's/version = \"//;s/\"//')
+        echo "version=$version" >> $GITHUB_OUTPUT
+
+  x86_64-linux:
+    needs: extract-version
+    runs-on: ubuntu-latest
+    env:
+      CARGO_VERSION: ${{ needs.extract-version.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      run: rustup update stable
+
+    - name: Build
+      run: cargo build --release --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: Create release artifact
+      run: |
+        mkdir -p artifacts
+        cp target/release/${{ env.EXECUTABLE_NAME }} artifacts/${{ env.EXECUTABLE_NAME }}-x86_64-Linux
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-binary
+        path: artifacts/
+  
+  aarch64-linux:
+    needs: extract-version
+    runs-on: ubuntu-latest
+    env:
+      CARGO_VERSION: ${{ needs.extract-version.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      run:
+        rustup update stable
+        rustup target add aarch64-unknown-linux-gnu
+
+    - name: Build
+      run: cargo build --release --target aarch64-unknown-linux-gnu --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: Create release artifact
+      run: |
+        mkdir -p artifacts
+        cp target/release/${{ env.EXECUTABLE_NAME }} artifacts/${{ env.EXECUTABLE_NAME }}-x86_64-Linux
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-binary
+        path: artifacts/
+
+  x86_64-windows:
+    needs: extract-version
+    runs-on: windows-latest
+    env:
+      CARGO_VERSION: ${{ needs.extract-version.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      run: rustup update stable
+
+    - name: Build
+      run: cargo build --release --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: Create release artifact
+      run: |
+        mkdir artifacts
+        copy target\release\${{ env.EXECUTABLE_NAME }}.exe artifacts\${{ env.EXECUTABLE_NAME }}-x86_64-Windows.exe
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-binary-windows
+        path: artifacts/
+
+  release:
+    needs:
+      - extract-version
+      - x86_64-linux
+      - x86_64-windows
+    
+    runs-on: ubuntu-latest
+    env:
+      CARGO_VERSION: ${{ needs.extract-version.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download Linux artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: release-binary
+        path: ./release-binary-linux
+
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: release-binary-windows
+        path: ./release-binary-windows
+
+    - name: Install GitHub CLI
+      run: sudo apt-get install -y gh
+
+    - name: Delete existing release assets (if any)
+      run: |
+        gh release delete-asset v${{ env.CARGO_VERSION }} ${{ env.EXECUTABLE_NAME }}-x86_64-Linux || true
+        gh release delete-asset v${{ env.CARGO_VERSION }} ${{ env.EXECUTABLE_NAME }}-x86_64-Windows.exe || true
+
+    - name: Create GitHub Release
+      run: |
+        gh release create v${{ env.CARGO_VERSION }} ./release-binary-linux/${{ env.EXECUTABLE_NAME }}-x86_64-Linux ./release-binary-windows/${{ env.EXECUTABLE_NAME }}-x86_64-Windows.exe \
+          --title "Release ${{ env.CARGO_VERSION }}" \
+          --notes "Automated release"
