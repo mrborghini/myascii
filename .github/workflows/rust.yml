@@ -50,7 +50,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: release-binary
+        name: release-binary-x86_64-linux
         path: artifacts/
   
   aarch64-linux:
@@ -86,7 +86,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: release-binary
+        name: release-binary-aarch64-linux
         path: artifacts/
 
   x86_64-windows:
