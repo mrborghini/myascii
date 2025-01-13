@@ -66,6 +66,9 @@ jobs:
       run: |
         rustup update stable
         rustup target add aarch64-unknown-linux-gnu
+  
+    - name: Install build dependencies
+      run: apt install gcc make gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
     - name: Build
       run: cargo build --release --target aarch64-unknown-linux-gnu --verbose
