@@ -161,9 +161,9 @@ jobs:
 
     - name: Create GitHub Release
       run: |
-        gh release create v${{ env.CARGO_VERSION }} \ 
-          ./release-binary-x86_64-linux/${{ env.EXECUTABLE_NAME }}-x86_64-Linux \ 
-          ./release-binary-aarch64-linux/${{ env.EXECUTABLE_NAME }}-aarch64-Linux \ 
-          ./release-binary-windows/${{ env.EXECUTABLE_NAME }}-x86_64-Windows.exe \
-          --title "Release ${{ env.CARGO_VERSION }}" \
-          --notes "Automated release"
+        gh release create v${{ env.CARGO_VERSION }} \
+        ./release-binary-x86_64-linux/${{ env.EXECUTABLE_NAME }}-x86_64-Linux \
+        ./release-binary-aarch64-linux/${{ env.EXECUTABLE_NAME }}-aarch64-Linux \
+        ./release-binary-windows/${{ env.EXECUTABLE_NAME }}-x86_64-Windows.exe \
+        --title "Release ${{ env.CARGO_VERSION }}" \
+        --notes "Automated release"
